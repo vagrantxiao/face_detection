@@ -2768,10 +2768,7 @@ unsigned int int_sqrt   ( ap_uint<32> value
 void IntegralImageCal(
 						int load,
 						int x,
-						unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH],
-						int_I I[WINDOW_SIZE][2*WINDOW_SIZE],
 						int_II II[WINDOW_SIZE][WINDOW_SIZE],
-						int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE],
 						int_SII SII[SQ_SIZE][SQ_SIZE],
 						unsigned char IMG1_data_y_x
 						);
@@ -2901,21 +2898,10 @@ void processImage
   static int sum_col=0;
   static MySize winSize;
 
-  /** Image Line buffer ( 24 BRAMs ) */ 
-  unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH];
-  #pragma HLS array_partition variable=L complete dim=1
-
-  /** Image Window buffer ( 1250 registers )*/
-  static int_I I[WINDOW_SIZE][2*WINDOW_SIZE];
-  #pragma HLS array_partition variable=I complete dim=0
-
   /** Integral Image Window buffer ( 625 registers )*/
   static int_II II[WINDOW_SIZE][WINDOW_SIZE];
   #pragma HLS array_partition variable=II complete dim=0
   
-  /** Square Image Window buffer ( 1250 registers ) **/
-  static int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE];
-  #pragma HLS array_partition variable=SI complete dim=0
 
   /** Square Integral Image Window buffer ( 625 registers )*/
   static int_SII SII[SQ_SIZE][SQ_SIZE];
@@ -2930,7 +2916,7 @@ void processImage
   sum_row = sz.height;
   sum_col  = sz.width;
 
-  IntegralImageCal(1, 0, L, I, II, SI, SII, 0);
+  IntegralImageCal(1, 0, II, SII, 0);
 
   int element_counter = 0;
   int x_index = 0;
@@ -2941,7 +2927,7 @@ void processImage
   Pixely: for( y = 0; y < sum_row; y++ ){
     Pixelx : for ( x = 0; x < sum_col; x++ ){
 
-      IntegralImageCal(0, x, L, I, II, SI, SII, IMG1_data[y][x]);
+      IntegralImageCal(0, x, II, SII, IMG1_data[y][x]);
 
       /* Pass the Integral Image Window buffer through Cascaded Classifier. Only pass
        * when the integral image window buffer has flushed out the initial garbage data */
@@ -2982,16 +2968,27 @@ void processImage
 
 void IntegralImageCal(	int load,
 						int x,
-						unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH],
-						int_I I[WINDOW_SIZE][2*WINDOW_SIZE],
 						int_II II[WINDOW_SIZE][WINDOW_SIZE],
-						int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE],
 						int_SII SII[SQ_SIZE][SQ_SIZE],
 						unsigned char IMG1_data_y_x
 						)
 {
 
 	int u, v, i, j, k;
+	  /** Image Line buffer ( 24 BRAMs ) */
+	static unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH];
+	#pragma HLS ARRAY_PARTITION variable=L block factor=WINDOW_SIZE-1 dim=1
+
+	  /** Image Window buffer ( 1250 registers )*/
+	static int_I I[WINDOW_SIZE][2*WINDOW_SIZE];
+	#pragma HLS array_partition variable=I complete dim=0
+
+
+	/** Square Image Window buffer ( 1250 registers ) **/
+	static int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE];
+	#pragma HLS array_partition variable=SI complete dim=0
+
+
 
 	if(load){
 	  Initialize0u :

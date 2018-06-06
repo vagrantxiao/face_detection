@@ -75,7 +75,7 @@ int main(int argc, char ** argv)
   // print time
   long long elapsed = (end.tv_sec - start.tv_sec) * 1000000LL + end.tv_usec - start.tv_usec;   
   printf("elapsed time: %lld us\n", elapsed);
-  puts("12:02\n");
+  puts("1:43\n");
   // cleanup
 
 
