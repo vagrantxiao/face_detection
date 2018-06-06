@@ -2765,7 +2765,9 @@ void groupRectangles    ( MyRect *rectList,
 unsigned int int_sqrt   ( ap_uint<32> value
                         );
 
-void IntegralImageCal(	int x,
+void IntegralImageCal(
+						int load,
+						int x,
 						unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH],
 						int_I I[WINDOW_SIZE][2*WINDOW_SIZE],
 						int_II II[WINDOW_SIZE][WINDOW_SIZE],
@@ -2928,55 +2930,18 @@ void processImage
   sum_row = sz.height;
   sum_col  = sz.width;
 
-  
-  Initialize0u : 
-  for ( u = 0; u < WINDOW_SIZE; u++ ){
-  #pragma HLS unroll
-    Initailize0v:
-    for ( v = 0; v < WINDOW_SIZE; v++ ){
-    #pragma HLS unroll
-      II[u][v] = 0;
-    }
-  }
-
-  SII[0][0] = 0;
-  SII[0][1] = 0;
-  SII[1][0] = 0;
-  SII[1][1] = 0;
-  
-
-  Initialize1i:
-  for ( i = 0; i < WINDOW_SIZE ; i++ ){
-  #pragma HLS unroll
-    Initialize1j:
-    for ( j = 0; j < 2*WINDOW_SIZE; j++ ){
-    #pragma HLS unroll
-      I[i][j] = 0;
-      SI[i][j] = 0;
-    }
-  }
-  
-  
-  Initialize2y :
-  for ( y = 0; y < WINDOW_SIZE-1; y++ ){
-  #pragma HLS unroll
-    Initialize2x :
-    for ( x = 0; x < IMAGE_WIDTH ; x++){//IMAGE_WIDTH; x++ ){
-      L[y][x] = 0;
-    }
-  }
- 
+  IntegralImageCal(1, 0, L, I, II, SI, SII, 0);
 
   int element_counter = 0;
   int x_index = 0;
   int y_index = 0;
-  int ii, jj;
+
 
   /** Loop over each point in the Image ( scaled ) **/
   Pixely: for( y = 0; y < sum_row; y++ ){
     Pixelx : for ( x = 0; x < sum_col; x++ ){
 
-      IntegralImageCal(x, L, I, II, SI, SII, IMG1_data[y][x]);
+      IntegralImageCal(0, x, L, I, II, SI, SII, IMG1_data[y][x]);
 
       /* Pass the Integral Image Window buffer through Cascaded Classifier. Only pass
        * when the integral image window buffer has flushed out the initial garbage data */
@@ -3015,7 +2980,8 @@ void processImage
   factor *= scaleFactor;
 }
 
-void IntegralImageCal(	int x,
+void IntegralImageCal(	int load,
+						int x,
 						unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH],
 						int_I I[WINDOW_SIZE][2*WINDOW_SIZE],
 						int_II II[WINDOW_SIZE][WINDOW_SIZE],
@@ -3026,6 +2992,48 @@ void IntegralImageCal(	int x,
 {
 
 	int u, v, i, j, k;
+
+	if(load){
+	  Initialize0u :
+	  for ( u = 0; u < WINDOW_SIZE; u++ ){
+	  #pragma HLS unroll
+	    Initailize0v:
+	    for ( v = 0; v < WINDOW_SIZE; v++ ){
+	    #pragma HLS unroll
+	      II[u][v] = 0;
+	    }
+	  }
+
+	  SII[0][0] = 0;
+	  SII[0][1] = 0;
+	  SII[1][0] = 0;
+	  SII[1][1] = 0;
+
+
+	  Initialize1i:
+	  for ( i = 0; i < WINDOW_SIZE ; i++ ){
+	  #pragma HLS unroll
+	    Initialize1j:
+	    for ( j = 0; j < 2*WINDOW_SIZE; j++ ){
+	    #pragma HLS unroll
+	      I[i][j] = 0;
+	      SI[i][j] = 0;
+	    }
+	  }
+
+
+	  Initialize2y :
+	  for ( int L_y = 0; L_y < WINDOW_SIZE-1; L_y++ ){
+	  #pragma HLS unroll
+	    Initialize2x :
+	    for ( int L_x = 0; L_x < IMAGE_WIDTH ; L_x++){//IMAGE_WIDTH; x++ ){
+	      L[L_y][L_x] = 0;
+	    }
+	  }
+	  return;
+	}
+
+
     /* Updates for Integral Image Window Buffer (I) */
     SetIIu: for ( u = 0; u < WINDOW_SIZE; u++){
     #pragma HLS unroll
