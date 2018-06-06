@@ -58,11 +58,10 @@ int main(int argc, char ** argv)
   #ifdef SDSOC
     // As the SDSoC generated data motion network does not support sending 320 X 240 images at once
     // We needed to send all the 240 rows using 240 iterations. The last invokation of detectFaces() does the actual face detection
-    for ( int i = 0; i < IMAGE_HEIGHT-1; i ++ )
-      face_detect(Data[i], result_x, result_y, result_w, result_h, &res_size);
+
   
     gettimeofday(&start, 0);
-    face_detect(Data[IMAGE_HEIGHT-1], result_x, result_y, result_w, result_h, &res_size);
+    face_detect(Data, result_x, result_y, result_w, result_h, &res_size);
     gettimeofday(&end, 0);
   #endif
 

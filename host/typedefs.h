@@ -26,6 +26,7 @@ const int ROWS = 25;
 const int COLS = 25;
 const int NUM_BANKS = 12;
 const int SIZE = 2913;
+const float FACTOR = 1.2;
 
 #ifdef OCL
   #include <string>

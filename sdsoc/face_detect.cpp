@@ -9,6 +9,8 @@
 #include "../host/typedefs.h"
 
 #include "haar_mapping.h"
+#include "stdio.h"
+
 
 uint5_t get_bank(uint10_t addr)
 {
@@ -2729,11 +2731,8 @@ int classifier51( int_II II[WINDOW_SIZE][WINDOW_SIZE], int stddev ){
 /****************************************************************************************/
 /* FUNCTION DECLARATIONS
 ****************************************************************************************/
-void imageScaler        ( int src_height,
-			  int src_width,
+void imageScaler        ( int LoadOrScale,
                           unsigned char Data[IMAGE_HEIGHT][IMAGE_WIDTH],
-                          int dest_height,
-			  int dest_width,
                           unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH] 
                         );
 
@@ -2781,7 +2780,7 @@ inline  int  myRound ( float value )
 void face_detect
 
 ( 
-  unsigned char inData[IMAGE_WIDTH],
+  unsigned char inData[IMAGE_HEIGHT][IMAGE_WIDTH],
   int result_x[RESULT_SIZE],
   int result_y[RESULT_SIZE],
   int result_w[RESULT_SIZE],
@@ -2790,7 +2789,6 @@ void face_detect
 )
 
 {
-  static unsigned char Data[IMAGE_HEIGHT][IMAGE_WIDTH];
   int i, j;
 
   int result_x_Scale[RESULT_SIZE];
@@ -2800,25 +2798,13 @@ void face_detect
   int res_size_Scale = 0;
   int *result_size_Scale = &res_size_Scale;
 
-  static int counter = 0;
-  if ( counter < IMAGE_HEIGHT){
-    for( j = 0; j < IMAGE_WIDTH; j++){
-         Data[counter][j] = inData[j];
-    }
-    counter++;
-    if ( counter < IMAGE_HEIGHT ){
-      for ( i = 0; i < RESULT_SIZE; i++){ 
-        result_x[i] = 0;
-        result_y[i] = 0;
-        result_w[i] = 0;
-        result_h[i] = 0;
-      }
-      *result_size = 0; 
-      return ;
-    }
+  for ( i = 0; i < RESULT_SIZE; i++){
+	result_x[i] = 0;
+	result_y[i] = 0;
+	result_w[i] = 0;
+	result_h[i] = 0;
   }
 
-  counter = 0;
   *result_size = 0;
     
   float  scaleFactor = 1.2;
@@ -2833,6 +2819,16 @@ void face_detect
   winSize0.height= 24;
 
   factor = scaleFactor ;
+  static int LoadOrScale = 1;
+
+  imageScaler	    (
+  	              	  LoadOrScale,
+					  inData,
+					  IMG1_data
+                  );
+
+  LoadOrScale = 0;
+
 
   L1: 
   while ( IMAGE_WIDTH/factor > WINDOW_SIZE && IMAGE_HEIGHT/factor > WINDOW_SIZE )
@@ -2843,18 +2839,16 @@ void face_detect
     /* size of the image scaled down (from bigger to smaller) */
     MySize sz = { (int)( IMAGE_WIDTH/factor ), (int)( IMAGE_HEIGHT/factor ) };
 
-    height = sz.height;
-    width  = sz.width;
-     
-    imageScaler	    ( IMAGE_HEIGHT,
-		      IMAGE_WIDTH,
-                      Data, 
-                      height,
-		      width,
+        height = sz.height;
+        width  = sz.width;
+
+    imageScaler	    (
+    	              LoadOrScale,
+					  inData,
                       IMG1_data
                     ); 
-   
-  
+    printf("----%d, %d\n", IMG1_data[1][1], IMG1_data[2][2]);
+
     processImage       ( factor, 
                          height, 
                          width,
@@ -3353,29 +3347,49 @@ int weakClassifier
 
 void imageScaler
 (
-  int src_height,
-  int src_width,
-  unsigned char Data[IMAGE_HEIGHT][IMAGE_WIDTH], 
-  int dest_height,
-  int dest_width,
+  int LoadOrScale, //src_width, src_height, dest_width, dest_height, LoadOrScale
+  unsigned char inData[IMAGE_HEIGHT][IMAGE_WIDTH],
   unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH]
 )
 {
+  static unsigned char Data[IMAGE_HEIGHT][IMAGE_WIDTH];
   int y;
   int j;
   int x;
   int i;
   unsigned char* t;
   unsigned char* p;
-  int w1 = src_width;
-  int h1 = src_height;
-  int w2 = dest_width;
-  int h2 = dest_height;
-
+  static int w1 = IMAGE_WIDTH;
+  static int h1 = IMAGE_HEIGHT;
+  static int w2 = IMAGE_WIDTH;
+  static int h2 = IMAGE_HEIGHT;
+  static float factor = 1.2;
   int rat = 0;
+  float  scaleFactor = 1.2;
 
-  int x_ratio = (int)((w1<<16)/w2) +1; 
-  int y_ratio = (int)((h1<<16)/h2) +1;
+  int x_ratio = 0;
+  int y_ratio = 0;
+
+  if (LoadOrScale){
+    for( i = 0; i < IMAGE_HEIGHT; i++){
+      for( j = 0; j < IMAGE_WIDTH; j++){
+    	  Data[i][j] = inData[i][j];
+      }
+    }
+    return;
+  }
+  factor = factor*1;
+  MySize sz = { (int)( IMAGE_WIDTH/factor ), (int)( IMAGE_HEIGHT/factor ) };
+  w2 = sz.width;
+  h2 = sz.height;
+
+  factor *= scaleFactor;
+  //printf("---%d, %d, %d, %d\n", w1, h1, w2, h2);
+
+  x_ratio = (int)((w1<<16)/w2) +1;
+  y_ratio = (int)((h1<<16)/h2) +1;
+
+
 
 
   imageScalerL1: for ( i = 0 ; i < IMAGE_HEIGHT ; i++ ){ 
