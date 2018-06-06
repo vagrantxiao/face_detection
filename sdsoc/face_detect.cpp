@@ -2765,6 +2765,15 @@ void groupRectangles    ( MyRect *rectList,
 unsigned int int_sqrt   ( ap_uint<32> value
                         );
 
+void IntegralImageCal(	int x,
+						unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH],
+						int_I I[WINDOW_SIZE][2*WINDOW_SIZE],
+						int_II II[WINDOW_SIZE][WINDOW_SIZE],
+						int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE],
+						int_SII SII[SQ_SIZE][SQ_SIZE],
+						unsigned char IMG1_data_y_x
+						);
+
 inline  int  myRound ( float value )
 {
   return (int)(value + (value >= 0 ? 0.5 : -0.5));
@@ -2967,51 +2976,7 @@ void processImage
   Pixely: for( y = 0; y < sum_row; y++ ){
     Pixelx : for ( x = 0; x < sum_col; x++ ){
 
-      /* Updates for Integral Image Window Buffer (I) */
-      SetIIu: for ( u = 0; u < WINDOW_SIZE; u++){
-      #pragma HLS unroll
-        SetIIj: for ( v = 0; v < WINDOW_SIZE; v++ ){
-        #pragma HLS unroll
-          II[u][v] = II[u][v] + ( I[u][v+1] - I[u][0] );
-        }
-      }
-      
-      /* Updates for Square Integral Image Window Buffer (SI) */
-      SII[0][0] = SII[0][0] + ( SI[0][1] - SI[0][0] );
-      SII[0][1] = SII[0][1] + ( SI[0][WINDOW_SIZE] - SI[0][0] );
-      SII[1][0] = SII[1][0] + ( SI[WINDOW_SIZE-1][1] - SI[WINDOW_SIZE-1][0] );
-      SII[1][1] = SII[1][1] + ( SI[WINDOW_SIZE-1][WINDOW_SIZE] - SI[WINDOW_SIZE-1][0] );
-      
-      /* Updates for Image Window Buffer (I) and Square Image Window Bufer (SI) */
-      SetIj: for( j = 0; j < 2*WINDOW_SIZE-1; j++){
-      #pragma HLS unroll
-        SetIi: for( i = 0; i < WINDOW_SIZE; i++ ){
-        #pragma HLS unroll
-          if( i+j != 2*WINDOW_SIZE-1 ){
-            I[i][j] = I[i][j+1];
-            SI[i][j] = SI[i][j+1];
-          }
-          else if ( i > 0 ){
-            I[i][j] = I[i][j+1] + I[i-1][j+1];
-            SI[i][j] = SI[i][j+1] + SI[i-1][j+1];
-          }
-        }
-      }
-      /** Last column of the I[][] matrix **/
-      Ilast: for( i = 0; i < WINDOW_SIZE-1; i++ ){
-      #pragma HLS unroll
-        I[i][2*WINDOW_SIZE-1] = L[i][x];
-        SI[i][2*WINDOW_SIZE-1] = L[i][x]*L[i][x];
-      }
-      I[WINDOW_SIZE-1][2*WINDOW_SIZE-1] = IMG1_data[y][x];
-      SI[WINDOW_SIZE-1][2*WINDOW_SIZE-1] = IMG1_data[y][x]*IMG1_data[y][x];
-
-      /** Updates for Image Line Buffer (L) **/
-      LineBuf: for( k = 0; k < WINDOW_SIZE-2; k++ ){
-      #pragma HLS unroll
-        L[k][x] = L[k+1][x];
-      }
-      L[WINDOW_SIZE-2][x] = IMG1_data[y][x];
+      IntegralImageCal(x, L, I, II, SI, SII, IMG1_data[y][x]);
 
       /* Pass the Integral Image Window buffer through Cascaded Classifier. Only pass
        * when the integral image window buffer has flushed out the initial garbage data */
@@ -3048,6 +3013,66 @@ void processImage
     }   
   } 
   factor *= scaleFactor;
+}
+
+void IntegralImageCal(	int x,
+						unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH],
+						int_I I[WINDOW_SIZE][2*WINDOW_SIZE],
+						int_II II[WINDOW_SIZE][WINDOW_SIZE],
+						int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE],
+						int_SII SII[SQ_SIZE][SQ_SIZE],
+						unsigned char IMG1_data_y_x
+						)
+{
+
+	int u, v, i, j, k;
+    /* Updates for Integral Image Window Buffer (I) */
+    SetIIu: for ( u = 0; u < WINDOW_SIZE; u++){
+    #pragma HLS unroll
+      SetIIj: for ( v = 0; v < WINDOW_SIZE; v++ ){
+      #pragma HLS unroll
+        II[u][v] = II[u][v] + ( I[u][v+1] - I[u][0] );
+      }
+    }
+
+    /* Updates for Square Integral Image Window Buffer (SI) */
+    SII[0][0] = SII[0][0] + ( SI[0][1] - SI[0][0] );
+    SII[0][1] = SII[0][1] + ( SI[0][WINDOW_SIZE] - SI[0][0] );
+    SII[1][0] = SII[1][0] + ( SI[WINDOW_SIZE-1][1] - SI[WINDOW_SIZE-1][0] );
+    SII[1][1] = SII[1][1] + ( SI[WINDOW_SIZE-1][WINDOW_SIZE] - SI[WINDOW_SIZE-1][0] );
+
+    /* Updates for Image Window Buffer (I) and Square Image Window Bufer (SI) */
+    SetIj: for( j = 0; j < 2*WINDOW_SIZE-1; j++){
+    #pragma HLS unroll
+      SetIi: for( i = 0; i < WINDOW_SIZE; i++ ){
+      #pragma HLS unroll
+        if( i+j != 2*WINDOW_SIZE-1 ){
+          I[i][j] = I[i][j+1];
+          SI[i][j] = SI[i][j+1];
+        }
+        else if ( i > 0 ){
+          I[i][j] = I[i][j+1] + I[i-1][j+1];
+          SI[i][j] = SI[i][j+1] + SI[i-1][j+1];
+        }
+      }
+    }
+    /** Last column of the I[][] matrix **/
+    Ilast: for( i = 0; i < WINDOW_SIZE-1; i++ ){
+    #pragma HLS unroll
+      I[i][2*WINDOW_SIZE-1] = L[i][x];
+      SI[i][2*WINDOW_SIZE-1] = L[i][x]*L[i][x];
+    }
+    I[WINDOW_SIZE-1][2*WINDOW_SIZE-1] = IMG1_data_y_x;
+    SI[WINDOW_SIZE-1][2*WINDOW_SIZE-1] = IMG1_data_y_x*IMG1_data_y_x;
+
+    /** Updates for Image Line Buffer (L) **/
+    LineBuf: for( k = 0; k < WINDOW_SIZE-2; k++ ){
+    #pragma HLS unroll
+      L[k][x] = L[k+1][x];
+    }
+    L[WINDOW_SIZE-2][x] = IMG1_data_y_x;
+
+
 }
 
 int cascadeClassifier 
