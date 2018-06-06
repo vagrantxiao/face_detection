@@ -2844,7 +2844,7 @@ void face_detect
 					  inData,
                       IMG1_data
                     ); 
-    printf("----%d, %d\n", IMG1_data[1][1], IMG1_data[2][2]);
+    printf("sssssss=%d, %d\n", IMG1_data[1][1], IMG1_data[2][2]);
 
     processImage       ( result_x_Scale,
                          result_y_Scale,
@@ -2910,8 +2910,12 @@ void processImage
   static int_SII SII[SQ_SIZE][SQ_SIZE];
   #pragma HLS array_partition variable=SII complete dim=0
 
-  winSize = { myRound(24*factor), myRound(24*factor) };
-  sz = {(int)( IMAGE_WIDTH/factor ), (int)( IMAGE_HEIGHT/factor ) };
+  //winSize = { myRound(24*factor), myRound(24*factor) };
+  winSize.width = myRound(24*factor);
+  winSize.height = myRound(24*factor);
+
+  sz.width = (int)( IMAGE_WIDTH/factor );
+  sz.height = (int)( IMAGE_HEIGHT/factor );
   sum_row = sz.height;
   sum_col  = sz.width;
 
@@ -2972,7 +2976,7 @@ void processImage
         }
       }
       
-      /* Updates for Square Image Window Buffer (SI) */
+      /* Updates for Square Integral Image Window Buffer (SI) */
       SII[0][0] = SII[0][0] + ( SI[0][1] - SI[0][0] );
       SII[0][1] = SII[0][1] + ( SI[0][WINDOW_SIZE] - SI[0][0] );
       SII[1][0] = SII[1][0] + ( SI[WINDOW_SIZE-1][1] - SI[WINDOW_SIZE-1][0] );
