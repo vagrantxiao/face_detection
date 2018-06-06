@@ -2736,16 +2736,13 @@ void imageScaler        ( int LoadOrScale,
                           unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH] 
                         );
 
-void processImage       ( float _factor,
-                          int sum_row,
-                          int sum_col,
+void processImage       (
                           int *AllCandidates_x,
                           int *AllCandidates_y,
                           int *AllCandidates_w,
                           int *AllCandidates_h,
                           int *AllCandidates_size,
-                          unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH],
-                          MySize winSize
+                          unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH]
                         );
 
 int cascadeClassifier   ( MyPoint pt,
@@ -2849,16 +2846,12 @@ void face_detect
                     ); 
     printf("----%d, %d\n", IMG1_data[1][1], IMG1_data[2][2]);
 
-    processImage       ( factor, 
-                         height, 
-                         width,
-                         result_x_Scale,
+    processImage       ( result_x_Scale,
                          result_y_Scale,
                          result_w_Scale,
                          result_h_Scale,
                          result_size_Scale,
-                         IMG1_data,
-                         winSize
+                         IMG1_data
                        ); 
     factor *= scaleFactor;
   } /* end of the factor loop, finish all scales in pyramid*/
@@ -2874,16 +2867,13 @@ void face_detect
 
 void processImage 
 
-( float factor,
-  int sum_row,
-  int sum_col, 
+(
   int *AllCandidates_x,
   int *AllCandidates_y,
   int *AllCandidates_w,
   int *AllCandidates_h,
   int *AllCandidates_size, 
-  unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH], 
-  MySize winSize
+  unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH]
 )
 {
   #pragma HLS inline off
@@ -2893,6 +2883,12 @@ void processImage
  
   int u,v;
   int x,y,i,j,k;
+  float  scaleFactor = 1.2;
+  static float factor = 1.2;
+  static MySize sz = {0, 0};
+  static int sum_row=0;
+  static int sum_col=0;
+  static MySize winSize;
 
   /** Image Line buffer ( 24 BRAMs ) */ 
   unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH];
@@ -2913,6 +2909,11 @@ void processImage
   /** Square Integral Image Window buffer ( 625 registers )*/
   static int_SII SII[SQ_SIZE][SQ_SIZE];
   #pragma HLS array_partition variable=SII complete dim=0
+
+  winSize = { myRound(24*factor), myRound(24*factor) };
+  sz = {(int)( IMAGE_WIDTH/factor ), (int)( IMAGE_HEIGHT/factor ) };
+  sum_row = sz.height;
+  sum_col  = sz.width;
 
   
   Initialize0u : 
@@ -3042,7 +3043,7 @@ void processImage
        element_counter +=1;
     }   
   } 
-   
+  factor *= scaleFactor;
 }
 
 int cascadeClassifier 
