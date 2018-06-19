@@ -2844,6 +2844,10 @@ void face_detect
   factor = scaleFactor ;
   static int LoadOrScale = 1;
 
+  for (int jb=0; jb <10; jb++){
+	  printf("inData[0][%d] = %d\n", jb, inData[0][jb]);
+  }
+
   imageScaler	    (
   	              	  LoadOrScale,
 					  inData,
