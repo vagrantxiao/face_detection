@@ -2852,7 +2852,7 @@ void face_detect
 
   LoadOrScale = 0;
 
-
+  int times = 0;
   L1: 
   while ( IMAGE_WIDTH/factor > WINDOW_SIZE && IMAGE_HEIGHT/factor > WINDOW_SIZE )
   {
@@ -2863,8 +2863,8 @@ void face_detect
     /* size of the image scaled down (from bigger to smaller) */
     MySize sz = { (int)( IMAGE_WIDTH/factor ), (int)( IMAGE_HEIGHT/factor ) };
 
-        height = sz.height;
-        width  = sz.width;
+    height = sz.height;
+    width  = sz.width;
 
     imageScaler	    (
     	              LoadOrScale,
@@ -2874,7 +2874,10 @@ void face_detect
 
     sum_row=height;
     sum_col=width;
-
+    printf("times = %d\n", times);
+    printf("sum_row = %d\n", sum_row);
+    printf("sum_col = %d\n", sum_col);
+    times += 1;
     IntegralImageCal(1, 0, II, SII, 0);
 
     int element_counter = 0;
@@ -2887,13 +2890,7 @@ void face_detect
       Pixelx : for ( x = 0; x < sum_col; x++ ){
 
         IntegralImageCal(0, x, II, SII, IMG1_data[y][x]);
-
-
-        /* Pass the Integral Image Window buffer through Cascaded Classifier. Only pass
-         * when the integral image window buffer has flushed out the initial garbage data */
         if ( element_counter >= ( ( (WINDOW_SIZE-1)*sum_col + WINDOW_SIZE ) + WINDOW_SIZE -1 ) ) {
-
-  	 /* Sliding Window should not go beyond the boundary */
            if ( x_index < ( sum_col - (WINDOW_SIZE-1) ) && y_index < ( sum_row - (WINDOW_SIZE-1) ) ){
               p.x = x_index;
               p.y = y_index;
