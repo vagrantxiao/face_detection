@@ -2794,7 +2794,25 @@ void face_detect
 )
 
 {
-  int i, j;
+
+ MyPoint p;
+ int result;
+
+  int x,y,i,j,k;
+  static int sum_row=0;
+  static int sum_col=0;
+
+  /** Integral Image Window buffer ( 625 registers )*/
+  static int_II II[WINDOW_SIZE][WINDOW_SIZE];
+  #pragma HLS array_partition variable=II complete dim=0
+
+
+  /** Square Integral Image Window buffer ( 625 registers )*/
+  static int_SII SII[SQ_SIZE][SQ_SIZE];
+  #pragma HLS array_partition variable=SII complete dim=0
+
+
+
 
   int result_x_Scale[RESULT_SIZE];
   int result_y_Scale[RESULT_SIZE];
@@ -2839,6 +2857,7 @@ void face_detect
   while ( IMAGE_WIDTH/factor > WINDOW_SIZE && IMAGE_HEIGHT/factor > WINDOW_SIZE )
   {
 
+
     /* size of the image scaled up */
     MySize winSize = { myRound(winSize0.width*factor), myRound(winSize0.height*factor) };
     /* size of the image scaled down (from bigger to smaller) */
@@ -2852,15 +2871,61 @@ void face_detect
 					  inData,
                       IMG1_data
                     ); 
-    printf("sssssss=%d, %d\n", IMG1_data[1][1], IMG1_data[2][2]);
 
-    processImage       ( result_x_Scale,
-                         result_y_Scale,
-                         result_w_Scale,
-                         result_h_Scale,
-                         result_size_Scale,
-                         IMG1_data
-                       ); 
+    sum_row=height;
+    sum_col=width;
+
+    IntegralImageCal(1, 0, II, SII, 0);
+
+    int element_counter = 0;
+    int x_index = 0;
+    int y_index = 0;
+
+
+    /** Loop over each point in the Image ( scaled ) **/
+    Pixely: for( y = 0; y < sum_row; y++ ){
+      Pixelx : for ( x = 0; x < sum_col; x++ ){
+
+        IntegralImageCal(0, x, II, SII, IMG1_data[y][x]);
+
+
+        /* Pass the Integral Image Window buffer through Cascaded Classifier. Only pass
+         * when the integral image window buffer has flushed out the initial garbage data */
+        if ( element_counter >= ( ( (WINDOW_SIZE-1)*sum_col + WINDOW_SIZE ) + WINDOW_SIZE -1 ) ) {
+
+  	 /* Sliding Window should not go beyond the boundary */
+           if ( x_index < ( sum_col - (WINDOW_SIZE-1) ) && y_index < ( sum_row - (WINDOW_SIZE-1) ) ){
+              p.x = x_index;
+              p.y = y_index;
+
+              result = cascadeClassifier ( p,
+                                           II,
+                                           SII
+                                         );
+
+
+             if ( result > 0 )
+             {
+               MyRect r = {myRound(p.x*factor), myRound(p.y*factor), winSize.width, winSize.height};
+               result_x_Scale[*result_size_Scale]=r.x;
+               result_y_Scale[*result_size_Scale]=r.y;
+               result_w_Scale[*result_size_Scale]=r.width;
+               result_h_Scale[*result_size_Scale]=r.height;
+              *result_size_Scale=*result_size_Scale+1;
+             }
+           }// inner if
+           if ( x_index < sum_col-1 )
+               x_index = x_index + 1;
+           else{
+               x_index = 0;
+               y_index = y_index + 1;
+           }
+         } // outer if
+         element_counter +=1;
+      }
+    }
+
+
     factor *= scaleFactor;
   } /* end of the factor loop, finish all scales in pyramid*/
 
@@ -2913,9 +2978,9 @@ void processImage
 
   sz.width = (int)( IMAGE_WIDTH/factor );
   sz.height = (int)( IMAGE_HEIGHT/factor );
+
   sum_row = sz.height;
   sum_col  = sz.width;
-
   IntegralImageCal(1, 0, II, SII, 0);
 
   int element_counter = 0;
