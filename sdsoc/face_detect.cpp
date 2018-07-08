@@ -2941,12 +2941,12 @@ void face_detect
 
 void IntegralImageCal(
 						unsigned char data_in[3],
-						int_II II[WINDOW_SIZE][WINDOW_SIZE],
-						int_SII SII[SQ_SIZE][SQ_SIZE]
+						int_II II_out[WINDOW_SIZE][WINDOW_SIZE],
+						int_SII SII_out[SQ_SIZE][SQ_SIZE]
 						)
 {
-#pragma HLS INTERFACE ap_hs port=SII
-#pragma HLS INTERFACE ap_hs port=II
+#pragma HLS INTERFACE ap_hs port=SII_out
+#pragma HLS INTERFACE ap_hs port=II_out
 #pragma HLS INTERFACE ap_hs port=data_in
 
 	int u, v, i, j, k;
@@ -2963,6 +2963,8 @@ void IntegralImageCal(
 	static int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE];
 	//#pragma HLS array_partition variable=SI complete dim=0
 
+	static int_II II[WINDOW_SIZE][WINDOW_SIZE];
+	static int_SII SII[SQ_SIZE][SQ_SIZE];
 	int load;
 	int x;
 	unsigned char IMG1_data_y_x;
@@ -3057,6 +3059,15 @@ void IntegralImageCal(
     }
     L[WINDOW_SIZE-2][x] = IMG1_data_y_x;
 
+	for ( u = 0; u < WINDOW_SIZE; u++){
+	  for ( v = 0; v < WINDOW_SIZE; v++ ){
+		  II_out[u][v] = II[u][v];
+	  }
+	}
+	SII_out[0][0] = SII[0][0];
+	SII_out[0][1] = SII[0][1];
+	SII_out[1][0] = SII[1][0];
+	SII_out[1][1] = SII[1][1];
 
 }
 
