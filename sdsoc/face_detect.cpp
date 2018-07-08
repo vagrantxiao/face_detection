@@ -2962,9 +2962,9 @@ void IntegralImageCal(
 						int data_out[625]
 						)
 {
-#pragma HLS INTERFACE ap_hs port=SII_out
-#pragma HLS INTERFACE ap_hs port=II_out
 #pragma HLS INTERFACE ap_hs port=data_in
+#pragma HLS INTERFACE ap_hs port=data_out
+
 
 	int u, v, i, j, k;
 	  /** Image Line buffer ( 24 BRAMs ) */
@@ -3387,9 +3387,9 @@ void cascadeClassifier_1
 )
 
 {
-#pragma HLS INTERFACE ap_hs port=stddev_out
-#pragma HLS INTERFACE ap_hs port=SII_in
-#pragma HLS INTERFACE ap_hs port=II_in
+#pragma HLS INTERFACE ap_hs port=data_in
+#pragma HLS INTERFACE ap_hs port=data_out
+
   #pragma HLS INLINE
 
   int_II II[WINDOW_SIZE][WINDOW_SIZE];
@@ -3678,9 +3678,8 @@ void cascadeClassifier_2
 )
 
 {
+#pragma HLS INTERFACE ap_hs port=data_in
 #pragma HLS INTERFACE ap_hs port=result
-#pragma HLS INTERFACE ap_hs port=SII_in
-#pragma HLS INTERFACE ap_hs port=II_in
 
   MyRect tr0,tr1,tr2;
   int result_in;
