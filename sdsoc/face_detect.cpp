@@ -2916,28 +2916,10 @@ void face_detect
            if ( x_index < ( sum_col - (WINDOW_SIZE-1) ) && y_index < ( sum_row - (WINDOW_SIZE-1) ) ){
               p.x = x_index;
               p.y = y_index;
-              int stddev_tmp_1;
-              int stddev_tmp_2;
-              int stddev_tmp_3;
-              int result_tmp_1;
-              int result_tmp_2;
-              int result_tmp_3;
-              //cascadeClassifier (II, SII, &result);
-              cascadeClassifier_1 (data_tmp_3, data_tmp_4);
-              stddev_tmp_1 = data_tmp_4[0];
-              result_tmp_1 = data_tmp_4[1];
-          	for (int u = 0; u < WINDOW_SIZE; u++){
-          	  for (int v = 0; v < WINDOW_SIZE; v++ ){
-          		  II[u][v] = data_tmp_4[u*WINDOW_SIZE+v+2];
-          	  }
-          	}
-          	SII[0][0] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+2];
-          	SII[0][1] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+3];
-          	SII[1][0] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+4];
-          	SII[1][1] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+5];
-              cascadeClassifier_2 (data_tmp_4, &result_tmp_2);
 
-              result = result_tmp_2;
+              cascadeClassifier_1 (data_tmp_3, data_tmp_4);
+              cascadeClassifier_2 (data_tmp_4, &result);
+
 
              if ( result > 0 )
              {
