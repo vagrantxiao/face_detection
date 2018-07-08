@@ -31,8 +31,8 @@ void check_results(int &result_size,
     result[j].height = result_h[j];
   }
 
-  for( int i=0 ; i < result_size ; i++ )
-    printf("\n [Test Bench (main) ] detected rects: %d %d %d %d",result[i].x,result[i].y,result[i].width,result[i].height);
+  //for( int i=0 ; i < result_size ; i++ )
+    //printf("\n [Test Bench (main) ] detected rects: %d %d %d %d",result[i].x,result[i].y,result[i].width,result[i].height);
  
   printf("\n-- saving output image [Start] --\r\n"); 
 
