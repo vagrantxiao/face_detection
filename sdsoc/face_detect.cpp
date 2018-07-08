@@ -2731,8 +2731,7 @@ int classifier51( int_II II[WINDOW_SIZE][WINDOW_SIZE], int stddev ){
 /****************************************************************************************/
 /* FUNCTION DECLARATIONS
 ****************************************************************************************/
-void imageScaler        ( int LoadOrScale,
-                          unsigned char Data[IMAGE_HEIGHT][IMAGE_WIDTH],
+void imageScaler        ( unsigned char Data[IMAGE_HEIGHT*IMAGE_WIDTH+1],
                           unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH] 
                         );
 
@@ -2766,11 +2765,9 @@ unsigned int int_sqrt   ( ap_uint<32> value
                         );
 
 void IntegralImageCal(
-						int load,
-						int x,
+						unsigned char data_in[3],
 						int_II II[WINDOW_SIZE][WINDOW_SIZE],
-						int_SII SII[SQ_SIZE][SQ_SIZE],
-						unsigned char IMG1_data_y_x
+						int_SII SII[SQ_SIZE][SQ_SIZE]
 						);
 
 inline  int  myRound ( float value )
@@ -2843,16 +2840,16 @@ void face_detect
 
   factor = scaleFactor ;
   static int LoadOrScale = 1;
-
-  for (int jb=0; jb <10; jb++){
-	  printf("inData[0][%d] = %d\n", jb, inData[0][jb]);
+  unsigned char data_tmp_1[IMAGE_HEIGHT*IMAGE_WIDTH+1];
+  data_tmp_1[0] = LoadOrScale;
+  for( i = 0; i < IMAGE_HEIGHT; i++){
+    for( j = 0; j < IMAGE_WIDTH; j++){
+    	data_tmp_1[i*IMAGE_WIDTH+j+1] = inData[i][j];
+    }
   }
 
-  imageScaler	    (
-  	              	  LoadOrScale,
-					  inData,
-					  IMG1_data
-                  );
+
+  imageScaler(data_tmp_1, IMG1_data);
 
   LoadOrScale = 0;
 
@@ -2869,20 +2866,19 @@ void face_detect
 
     height = sz.height;
     width  = sz.width;
-
-    imageScaler	    (
-    	              LoadOrScale,
-					  inData,
-                      IMG1_data
-                    ); 
+    data_tmp_1[0] = LoadOrScale;
+    imageScaler(data_tmp_1, IMG1_data);
 
     sum_row=height;
     sum_col=width;
     printf("times = %d\n", times);
-    printf("sum_row = %d\n", sum_row);
-    printf("sum_col = %d\n", sum_col);
     times += 1;
-    IntegralImageCal(1, 0, II, SII, 0);
+
+    unsigned char data_tmp_2[3];
+    data_tmp_2[0] = 1;
+    data_tmp_2[1] = 0;
+    data_tmp_2[2] = 0;
+    IntegralImageCal(data_tmp_2, II, SII);
 
     int element_counter = 0;
     int x_index = 0;
@@ -2892,8 +2888,10 @@ void face_detect
     /** Loop over each point in the Image ( scaled ) **/
     Pixely: for( y = 0; y < sum_row; y++ ){
       Pixelx : for ( x = 0; x < sum_col; x++ ){
-
-        IntegralImageCal(0, x, II, SII, IMG1_data[y][x]);
+    	data_tmp_2[0] = 0;
+    	data_tmp_2[1] = x;
+    	data_tmp_2[2] = IMG1_data[y][x];
+        IntegralImageCal(data_tmp_2, II, SII);
         if ( element_counter >= ( ( (WINDOW_SIZE-1)*sum_col + WINDOW_SIZE ) + WINDOW_SIZE -1 ) ) {
            if ( x_index < ( sum_col - (WINDOW_SIZE-1) ) && y_index < ( sum_row - (WINDOW_SIZE-1) ) ){
               p.x = x_index;
@@ -2939,130 +2937,46 @@ void face_detect
    *result_size = *result_size_Scale;
 }
 
-void processImage 
-
-(
-  int *AllCandidates_x,
-  int *AllCandidates_y,
-  int *AllCandidates_w,
-  int *AllCandidates_h,
-  int *AllCandidates_size, 
-  unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH]
-)
-{
-  #pragma HLS inline off
-  MyPoint p;
-  int result;
-  int step;
- 
-  int u,v;
-  int x,y,i,j,k;
-  float  scaleFactor = 1.2;
-  static float factor = 1.2;
-  static MySize sz = {0, 0};
-  static int sum_row=0;
-  static int sum_col=0;
-  static MySize winSize;
-
-  /** Integral Image Window buffer ( 625 registers )*/
-  static int_II II[WINDOW_SIZE][WINDOW_SIZE];
-  #pragma HLS array_partition variable=II complete dim=0
-  
-
-  /** Square Integral Image Window buffer ( 625 registers )*/
-  static int_SII SII[SQ_SIZE][SQ_SIZE];
-  #pragma HLS array_partition variable=SII complete dim=0
-
-  //winSize = { myRound(24*factor), myRound(24*factor) };
-  winSize.width = myRound(24*factor);
-  winSize.height = myRound(24*factor);
-
-  sz.width = (int)( IMAGE_WIDTH/factor );
-  sz.height = (int)( IMAGE_HEIGHT/factor );
-
-  sum_row = sz.height;
-  sum_col  = sz.width;
-  IntegralImageCal(1, 0, II, SII, 0);
-
-  int element_counter = 0;
-  int x_index = 0;
-  int y_index = 0;
 
 
-  /** Loop over each point in the Image ( scaled ) **/
-  Pixely: for( y = 0; y < sum_row; y++ ){
-    Pixelx : for ( x = 0; x < sum_col; x++ ){
-
-      IntegralImageCal(0, x, II, SII, IMG1_data[y][x]);
-
-      /* Pass the Integral Image Window buffer through Cascaded Classifier. Only pass
-       * when the integral image window buffer has flushed out the initial garbage data */
-      if ( element_counter >= ( ( (WINDOW_SIZE-1)*sum_col + WINDOW_SIZE ) + WINDOW_SIZE -1 ) ) {
-
-	 /* Sliding Window should not go beyond the boundary */
-         if ( x_index < ( sum_col - (WINDOW_SIZE-1) ) && y_index < ( sum_row - (WINDOW_SIZE-1) ) ){
-            p.x = x_index;
-            p.y = y_index;
-            
-            result = cascadeClassifier ( p,
-                                         II,
-                                         SII
-                                       );
-
-           if ( result > 0 )
-           {
-             MyRect r = {myRound(p.x*factor), myRound(p.y*factor), winSize.width, winSize.height};
-             AllCandidates_x[*AllCandidates_size]=r.x;
-             AllCandidates_y[*AllCandidates_size]=r.y;
-             AllCandidates_w[*AllCandidates_size]=r.width;
-             AllCandidates_h[*AllCandidates_size]=r.height;
-            *AllCandidates_size=*AllCandidates_size+1;
-           }
-         }// inner if
-         if ( x_index < sum_col-1 )
-             x_index = x_index + 1;
-         else{ 
-             x_index = 0;
-             y_index = y_index + 1;
-         }
-       } // outer if
-       element_counter +=1;
-    }   
-  } 
-  factor *= scaleFactor;
-}
-
-void IntegralImageCal(	int load,
-						int x,
+void IntegralImageCal(
+						unsigned char data_in[3],
 						int_II II[WINDOW_SIZE][WINDOW_SIZE],
-						int_SII SII[SQ_SIZE][SQ_SIZE],
-						unsigned char IMG1_data_y_x
+						int_SII SII[SQ_SIZE][SQ_SIZE]
 						)
 {
+#pragma HLS INTERFACE ap_hs port=SII
+#pragma HLS INTERFACE ap_hs port=II
+#pragma HLS INTERFACE ap_hs port=data_in
 
 	int u, v, i, j, k;
 	  /** Image Line buffer ( 24 BRAMs ) */
 	static unsigned char L[WINDOW_SIZE-1][IMAGE_WIDTH];
-	#pragma HLS ARRAY_PARTITION variable=L block factor=WINDOW_SIZE-1 dim=1
+	//#pragma HLS ARRAY_PARTITION variable=L block factor=WINDOW_SIZE-1 dim=1
 
 	  /** Image Window buffer ( 1250 registers )*/
 	static int_I I[WINDOW_SIZE][2*WINDOW_SIZE];
-	#pragma HLS array_partition variable=I complete dim=0
+	//#pragma HLS array_partition variable=I complete dim=0
 
 
 	/** Square Image Window buffer ( 1250 registers ) **/
 	static int_SI SI[WINDOW_SIZE][2*WINDOW_SIZE];
-	#pragma HLS array_partition variable=SI complete dim=0
+	//#pragma HLS array_partition variable=SI complete dim=0
 
-
+	int load;
+	int x;
+	unsigned char IMG1_data_y_x;
+	load = data_in[0];
+	x = data_in[1];
+	IMG1_data_y_x = data_in[2];
 
 	if(load){
 	  Initialize0u :
 	  for ( u = 0; u < WINDOW_SIZE; u++ ){
-	  #pragma HLS unroll
+	  //#pragma HLS unroll
 	    Initailize0v:
 	    for ( v = 0; v < WINDOW_SIZE; v++ ){
-	    #pragma HLS unroll
+	    //#pragma HLS unroll
 	      II[u][v] = 0;
 	    }
 	  }
@@ -3075,10 +2989,10 @@ void IntegralImageCal(	int load,
 
 	  Initialize1i:
 	  for ( i = 0; i < WINDOW_SIZE ; i++ ){
-	  #pragma HLS unroll
+	  //#pragma HLS unroll
 	    Initialize1j:
 	    for ( j = 0; j < 2*WINDOW_SIZE; j++ ){
-	    #pragma HLS unroll
+	    //#pragma HLS unroll
 	      I[i][j] = 0;
 	      SI[i][j] = 0;
 	    }
@@ -3099,9 +3013,9 @@ void IntegralImageCal(	int load,
 
     /* Updates for Integral Image Window Buffer (I) */
     SetIIu: for ( u = 0; u < WINDOW_SIZE; u++){
-    #pragma HLS unroll
+    //#pragma HLS unroll
       SetIIj: for ( v = 0; v < WINDOW_SIZE; v++ ){
-      #pragma HLS unroll
+      //#pragma HLS unroll
         II[u][v] = II[u][v] + ( I[u][v+1] - I[u][0] );
       }
     }
@@ -3114,9 +3028,9 @@ void IntegralImageCal(	int load,
 
     /* Updates for Image Window Buffer (I) and Square Image Window Bufer (SI) */
     SetIj: for( j = 0; j < 2*WINDOW_SIZE-1; j++){
-    #pragma HLS unroll
+    //#pragma HLS unroll
       SetIi: for( i = 0; i < WINDOW_SIZE; i++ ){
-      #pragma HLS unroll
+      //#pragma HLS unroll
         if( i+j != 2*WINDOW_SIZE-1 ){
           I[i][j] = I[i][j+1];
           SI[i][j] = SI[i][j+1];
@@ -3129,7 +3043,7 @@ void IntegralImageCal(	int load,
     }
     /** Last column of the I[][] matrix **/
     Ilast: for( i = 0; i < WINDOW_SIZE-1; i++ ){
-    #pragma HLS unroll
+    //#pragma HLS unroll
       I[i][2*WINDOW_SIZE-1] = L[i][x];
       SI[i][2*WINDOW_SIZE-1] = L[i][x]*L[i][x];
     }
@@ -3448,11 +3362,13 @@ int weakClassifier
 
 void imageScaler
 (
-  int LoadOrScale, //src_width, src_height, dest_width, dest_height, LoadOrScale
-  unsigned char inData[IMAGE_HEIGHT][IMAGE_WIDTH],
+  unsigned char inData[IMAGE_HEIGHT*IMAGE_WIDTH+1],
   unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH]
 )
 {
+#pragma HLS INTERFACE ap_hs port=inData
+#pragma HLS INTERFACE ap_hs port=IMG1_data
+
   static unsigned char Data[IMAGE_HEIGHT][IMAGE_WIDTH];
   int y;
   int j;
@@ -3460,6 +3376,7 @@ void imageScaler
   int i;
   unsigned char* t;
   unsigned char* p;
+  unsigned char LoadOrScale;
   static int w1 = IMAGE_WIDTH;
   static int h1 = IMAGE_HEIGHT;
   static int w2 = IMAGE_WIDTH;
@@ -3470,11 +3387,12 @@ void imageScaler
 
   int x_ratio = 0;
   int y_ratio = 0;
+  LoadOrScale = inData[0];
 
   if (LoadOrScale){
     for( i = 0; i < IMAGE_HEIGHT; i++){
       for( j = 0; j < IMAGE_WIDTH; j++){
-    	  Data[i][j] = inData[i][j];
+    	  Data[i][j] = inData[i*IMAGE_WIDTH+j+1];
       }
     }
     return;
