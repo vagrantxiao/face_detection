@@ -2744,9 +2744,10 @@ void processImage       (
                           unsigned char IMG1_data[IMAGE_HEIGHT][IMAGE_WIDTH]
                         );
 
-int cascadeClassifier   ( MyPoint pt,
+void cascadeClassifier   (
                           int_II II[WINDOW_SIZE][WINDOW_SIZE],
-                          int_SII SII[SQ_SIZE][SQ_SIZE] 
+                          int_SII SII[SQ_SIZE][SQ_SIZE],
+						  int *result
                         );
 
 int weakClassifier      ( int stddev,
@@ -2897,10 +2898,7 @@ void face_detect
               p.x = x_index;
               p.y = y_index;
 
-              result = cascadeClassifier ( p,
-                                           II,
-                                           SII
-                                         );
+              cascadeClassifier (II, SII, &result);
 
 
              if ( result > 0 )
@@ -3071,16 +3069,21 @@ void IntegralImageCal(
 
 }
 
-int cascadeClassifier 
+void cascadeClassifier
 (  
-  MyPoint pt, 
-  int_II II[WINDOW_SIZE][WINDOW_SIZE],
-  int_SII SII[SQ_SIZE][SQ_SIZE]
+  int_II II_in[WINDOW_SIZE][WINDOW_SIZE],
+  int_SII SII_in[SQ_SIZE][SQ_SIZE],
+  int *result
 ) 
 
 {
+#pragma HLS INTERFACE ap_hs port=result
+#pragma HLS INTERFACE ap_hs port=SII_in
+#pragma HLS INTERFACE ap_hs port=II_in
   #pragma HLS INLINE
 
+  int_II II[WINDOW_SIZE][WINDOW_SIZE];
+  int_SII SII[SQ_SIZE][SQ_SIZE];
   int i, j, k;
 
   int mean;
@@ -3121,6 +3124,17 @@ int cascadeClassifier
   
   uint18_t _II[WINDOW_SIZE*WINDOW_SIZE];
   #pragma HLS array_partition variable=_II complete dim=0
+
+	for ( int u = 0; u < WINDOW_SIZE; u++){
+	  for ( int v = 0; v < WINDOW_SIZE; v++ ){
+		  II[u][v] = II_in[u][v];
+	  }
+	}
+	SII[0][0] = SII_in[0][0];
+	SII[0][1] = SII_in[0][1];
+	SII[1][0] = SII_in[1][0];
+	SII[1][1] = SII_in[1][1];
+
 
   COPY_LOOP1: for (int i = 0; i < WINDOW_SIZE; i ++ ){
     #pragma HLS unroll
@@ -3167,8 +3181,11 @@ int cascadeClassifier
   s0[8] = classifier8( II, stddev );
   stage_sum = s0[0] + s0[1] + s0[2] + s0[3] + s0[4] + s0[5] + s0[6] + s0[7] + s0[8];
 
-  if( stage_sum < 0.4*stages_thresh_array[0] )
-    return -1;
+  if( stage_sum < 0.4*stages_thresh_array[0] ){
+	  *result = -1;
+	  return;
+  }
+
 
   haar_counter += 9;
 
@@ -3194,8 +3211,11 @@ int cascadeClassifier
   stage_sum = s1[0] + s1[1] + s1[2] + s1[3] + s1[4] + s1[5] + s1[6] + s1[7];
   stage_sum+= s1[8] + s1[9] + s1[10] + s1[11] + s1[12] + s1[13] + s1[14] + s1[15];
 
-  if( stage_sum < 0.4*stages_thresh_array[1] )
-    return -1;
+  if( stage_sum < 0.4*stages_thresh_array[1] ){
+	  *result = -1;
+	  return;
+  }
+
   
   haar_counter += 16;
 
@@ -3234,8 +3254,10 @@ int cascadeClassifier
   stage_sum+= s2[16] + s2[17] + s2[18] + s2[19] + s2[20] + s2[21] + s2[22] + s2[23];
   stage_sum+= s2[24] + s2[25] + s2[26];
 
-  if( stage_sum < 0.4*stages_thresh_array[2] )
-    return -1;
+  if( stage_sum < 0.4*stages_thresh_array[2] ){
+	  *result = -1;
+	  return;
+  }
   
   haar_counter += 27;
 
@@ -3329,11 +3351,12 @@ int cascadeClassifier
      
     } /* end of j loop */
     if( stage_sum < 0.4*stages_thresh_array[i] ){
-       return -i;
+    	*result =  -i;
+    	return;
     }
   } /* end of i loop */
-
- return 1;
+ *result = 1;
+ return;
 }
  
 int weakClassifier
