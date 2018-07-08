@@ -2757,11 +2757,8 @@ void cascadeClassifier_1   (
 
 
 void cascadeClassifier_2   (
-                          int_II II[WINDOW_SIZE][WINDOW_SIZE],
-                          int_SII SII[SQ_SIZE][SQ_SIZE],
-						  int *result,
-						  int result_in,
-						  int stddev
+						  int data_in[631],
+						  int *result
                         );
 
 
@@ -2938,7 +2935,7 @@ void face_detect
           	SII[0][1] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+3];
           	SII[1][0] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+4];
           	SII[1][1] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+5];
-              cascadeClassifier_2 (II, SII, &result_tmp_2, result_tmp_1, stddev_tmp_1);
+              cascadeClassifier_2 (data_tmp_4, &result_tmp_2);
 
               result = result_tmp_2;
 
@@ -3694,11 +3691,8 @@ void cascadeClassifier_1
 
 void cascadeClassifier_2
 (
-  int_II II_in[WINDOW_SIZE][WINDOW_SIZE],
-  int_SII SII_in[SQ_SIZE][SQ_SIZE],
-  int *result,
-  int result_in,
-  int stddev
+  int data_in[631],
+  int *result
 )
 
 {
@@ -3707,7 +3701,8 @@ void cascadeClassifier_2
 #pragma HLS INTERFACE ap_hs port=II_in
 
   MyRect tr0,tr1,tr2;
-
+  int result_in;
+  int stddev;
   int r_id;
   int w_id;
   int s;
@@ -3723,6 +3718,7 @@ void cascadeClassifier_2
 
   int_II II[WINDOW_SIZE][WINDOW_SIZE];
   int_SII SII[SQ_SIZE][SQ_SIZE];
+
   static  int stages_thresh_array[25] = {
     -1290,-1275,-1191,-1140,-1122,-1057,-1029,-994,-983,-933,-990,-951,-912,-947,-877,-899,-920,-868,-829,-821,-839,-849,-833,-862,-766
     };
@@ -3791,30 +3787,27 @@ void cascadeClassifier_2
   #pragma HLS array_partition variable=coord complete dim=0
 
 
-
-
-  if(result_in < 0){
-	  *result = -1;
-	  return;
-  }
-
-	for ( int u = 0; u < WINDOW_SIZE; u++){
-	  for ( int v = 0; v < WINDOW_SIZE; v++ ){
-		  II[u][v] = II_in[u][v];
-	  }
-	}
-	SII[0][0] = SII_in[0][0];
-	SII[0][1] = SII_in[0][1];
-	SII[1][0] = SII_in[1][0];
-	SII[1][1] = SII_in[1][1];
+  stddev = data_in[0];
+  result_in = data_in[1];
 
 	  COPY_LOOP1: for (int i = 0; i < WINDOW_SIZE; i ++ ){
 	    #pragma HLS unroll
 	    COPY_LOOP2: for (int j = 0; j < WINDOW_SIZE; j ++ ){
 	      #pragma HLS unroll
-	      _II[i*25+j] = II[i][j];
+	      _II[i*25+j] = data_in[i*WINDOW_SIZE+j+2];
 	    }
 	  }
+
+		SII[0][0] = data_in[WINDOW_SIZE*WINDOW_SIZE+2];
+		SII[0][1] = data_in[WINDOW_SIZE*WINDOW_SIZE+3];
+		SII[1][0] = data_in[WINDOW_SIZE*WINDOW_SIZE+4];
+		SII[1][1] = data_in[WINDOW_SIZE*WINDOW_SIZE+5];
+  if(result_in < 0){
+	  *result = -1;
+	  return;
+  }
+
+
 
 
   haar_counter = 52;
