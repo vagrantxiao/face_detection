@@ -2752,8 +2752,7 @@ void cascadeClassifier   (
 
 void cascadeClassifier_1   (
                           int data_in[629],
-						  int *stddev_out,
-						  int *result
+						  int data_out[631]
                         );
 
 
@@ -2899,6 +2898,7 @@ void face_detect
     data_tmp_2[1] = 0;
     data_tmp_2[2] = 0;
     int data_tmp_3[629];
+    int data_tmp_4[631];
     IntegralImageCal(data_tmp_2, data_tmp_3);
 
     int element_counter = 0;
@@ -2915,16 +2915,6 @@ void face_detect
 
         IntegralImageCal(data_tmp_2, data_tmp_3);
 
-    	for (int u = 0; u < WINDOW_SIZE; u++){
-    	  for (int v = 0; v < WINDOW_SIZE; v++ ){
-    		  II[u][v] = data_tmp_3[u*WINDOW_SIZE+v];
-    	  }
-    	}
-    	SII[0][0] = data_tmp_3[WINDOW_SIZE*WINDOW_SIZE];
-    	SII[0][1] = data_tmp_3[WINDOW_SIZE*WINDOW_SIZE+1];
-    	SII[1][0] = data_tmp_3[WINDOW_SIZE*WINDOW_SIZE+2];
-    	SII[1][1] = data_tmp_3[WINDOW_SIZE*WINDOW_SIZE+3];
-
         if ( element_counter >= ( ( (WINDOW_SIZE-1)*sum_col + WINDOW_SIZE ) + WINDOW_SIZE -1 ) ) {
            if ( x_index < ( sum_col - (WINDOW_SIZE-1) ) && y_index < ( sum_row - (WINDOW_SIZE-1) ) ){
               p.x = x_index;
@@ -2936,7 +2926,18 @@ void face_detect
               int result_tmp_2;
               int result_tmp_3;
               //cascadeClassifier (II, SII, &result);
-              cascadeClassifier_1 (data_tmp_3, &stddev_tmp_1, &result_tmp_1);
+              cascadeClassifier_1 (data_tmp_3, data_tmp_4);
+              stddev_tmp_1 = data_tmp_4[0];
+              result_tmp_1 = data_tmp_4[1];
+          	for (int u = 0; u < WINDOW_SIZE; u++){
+          	  for (int v = 0; v < WINDOW_SIZE; v++ ){
+          		  II[u][v] = data_tmp_4[u*WINDOW_SIZE+v+2];
+          	  }
+          	}
+          	SII[0][0] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+2];
+          	SII[0][1] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+3];
+          	SII[1][0] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+4];
+          	SII[1][1] = data_tmp_4[WINDOW_SIZE*WINDOW_SIZE+5];
               cascadeClassifier_2 (II, SII, &result_tmp_2, result_tmp_1, stddev_tmp_1);
 
               result = result_tmp_2;
@@ -3403,8 +3404,7 @@ void cascadeClassifier
 void cascadeClassifier_1
 (
   int data_in[629],
-  int *stddev_out,
-  int *result
+  int data_out[631]
 )
 
 {
@@ -3555,7 +3555,7 @@ void cascadeClassifier_1
   else
     stddev = 1;
 
-  *stddev_out = stddev;
+  data_out[0] =  stddev;
 
   /* Hard-Coding Classifier 0 */
   stage_sum = 0;
@@ -3572,7 +3572,16 @@ void cascadeClassifier_1
 
 
   if( stage_sum < 0.4*stages_thresh_array[0] ){
-	  *result = -1;
+	  data_out[1] = -1;
+	for ( int u = 0; u < WINDOW_SIZE; u++){
+	  for ( int v = 0; v < WINDOW_SIZE; v++ ){
+		  data_out[u*WINDOW_SIZE+v+2] = II[u][v];
+	  }
+	}
+	data_out[WINDOW_SIZE*WINDOW_SIZE+2] = SII[0][0];
+	data_out[WINDOW_SIZE*WINDOW_SIZE+3] = SII[0][1];
+	data_out[WINDOW_SIZE*WINDOW_SIZE+4] = SII[1][0];
+	data_out[WINDOW_SIZE*WINDOW_SIZE+5] = SII[1][1];
 	  return;
   }
 
@@ -3602,7 +3611,16 @@ void cascadeClassifier_1
 	stage_sum+= s1[8] + s1[9] + s1[10] + s1[11] + s1[12] + s1[13] + s1[14] + s1[15];
 
 	if( stage_sum < 0.4*stages_thresh_array[1] ){
-		  *result = -1;
+		data_out[1] = -1;
+		for ( int u = 0; u < WINDOW_SIZE; u++){
+		  for ( int v = 0; v < WINDOW_SIZE; v++ ){
+			  data_out[u*WINDOW_SIZE+v+2] = II[u][v];
+		  }
+		}
+		data_out[WINDOW_SIZE*WINDOW_SIZE+2] = SII[0][0];
+		data_out[WINDOW_SIZE*WINDOW_SIZE+3] = SII[0][1];
+		data_out[WINDOW_SIZE*WINDOW_SIZE+4] = SII[1][0];
+		data_out[WINDOW_SIZE*WINDOW_SIZE+5] = SII[1][1];
 		  return;
 	}
 
@@ -3644,10 +3662,28 @@ void cascadeClassifier_1
 
 
 	if( stage_sum < 0.4*stages_thresh_array[2] ){
-		  *result = -1;
+		data_out[1] = -1;
+		for ( int u = 0; u < WINDOW_SIZE; u++){
+		  for ( int v = 0; v < WINDOW_SIZE; v++ ){
+			  data_out[u*WINDOW_SIZE+v+2] = II[u][v];
+		  }
+		}
+		data_out[WINDOW_SIZE*WINDOW_SIZE+2] = SII[0][0];
+		data_out[WINDOW_SIZE*WINDOW_SIZE+3] = SII[0][1];
+		data_out[WINDOW_SIZE*WINDOW_SIZE+4] = SII[1][0];
+		data_out[WINDOW_SIZE*WINDOW_SIZE+5] = SII[1][1];
 		  return;
 	}
-	*result = 1;
+	data_out[1] = 1;
+	for ( int u = 0; u < WINDOW_SIZE; u++){
+	  for ( int v = 0; v < WINDOW_SIZE; v++ ){
+		  data_out[u*WINDOW_SIZE+v+2] = II[u][v];
+	  }
+	}
+	data_out[WINDOW_SIZE*WINDOW_SIZE+2] = SII[0][0];
+	data_out[WINDOW_SIZE*WINDOW_SIZE+3] = SII[0][1];
+	data_out[WINDOW_SIZE*WINDOW_SIZE+4] = SII[1][0];
+	data_out[WINDOW_SIZE*WINDOW_SIZE+5] = SII[1][1];
 	return;
 }
 
