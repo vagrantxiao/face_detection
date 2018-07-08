@@ -2751,8 +2751,7 @@ void cascadeClassifier   (
                         );
 
 void cascadeClassifier_1   (
-                          int_II II[WINDOW_SIZE][WINDOW_SIZE],
-                          int_SII SII[SQ_SIZE][SQ_SIZE],
+                          int data_in[629],
 						  int *stddev_out,
 						  int *result
                         );
@@ -2937,7 +2936,7 @@ void face_detect
               int result_tmp_2;
               int result_tmp_3;
               //cascadeClassifier (II, SII, &result);
-              cascadeClassifier_1 (II, SII, &stddev_tmp_1, &result_tmp_1);
+              cascadeClassifier_1 (data_tmp_3, &stddev_tmp_1, &result_tmp_1);
               cascadeClassifier_2 (II, SII, &result_tmp_2, result_tmp_1, stddev_tmp_1);
 
               result = result_tmp_2;
@@ -3403,8 +3402,7 @@ void cascadeClassifier
 
 void cascadeClassifier_1
 (
-  int_II II_in[WINDOW_SIZE][WINDOW_SIZE],
-  int_SII SII_in[SQ_SIZE][SQ_SIZE],
+  int data_in[629],
   int *stddev_out,
   int *result
 )
@@ -3521,13 +3519,13 @@ void cascadeClassifier_1
 
 	for ( int u = 0; u < WINDOW_SIZE; u++){
 	  for ( int v = 0; v < WINDOW_SIZE; v++ ){
-		  II[u][v] = II_in[u][v];
+		  II[u][v] = data_in[u*WINDOW_SIZE+v];
 	  }
 	}
-	SII[0][0] = SII_in[0][0];
-	SII[0][1] = SII_in[0][1];
-	SII[1][0] = SII_in[1][0];
-	SII[1][1] = SII_in[1][1];
+	SII[0][0] = data_in[WINDOW_SIZE*WINDOW_SIZE+0];
+	SII[0][1] = data_in[WINDOW_SIZE*WINDOW_SIZE+1];
+	SII[1][0] = data_in[WINDOW_SIZE*WINDOW_SIZE+2];
+	SII[1][1] = data_in[WINDOW_SIZE*WINDOW_SIZE+3];
 
 
   COPY_LOOP1: for (int i = 0; i < WINDOW_SIZE; i ++ ){
